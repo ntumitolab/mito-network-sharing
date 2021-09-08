@@ -15,8 +15,8 @@ Wrapper scripts
 Code 
 ----
 
-`bingo.c` is the workhorse C code for network generation and "bingo" simulation. For full functionality, this needs the `igraph` library. However, a preprocessor directive within the code can be removed, removing the `igraph` dependency. In this case, zeroes are output for all network statistics that `igraph` would provide. The followup R code can be used to compute these statistics for a subset of the networks generated in the simulations.
+`trajectory-analysis.R` extracts encounter networks from XML files and imposes any required restrictions (for example, truncating trajectory lengths)
 
-`trajectory-analysis.R` extracts encounter networks from XML files and imposes any required restrictions (for example, truncting trajectory lengths)
+`bingo.c` is the workhorse C code for network generation and "bingo" simulation. For full functionality, this needs the `igraph` library. However, a preprocessor directive within the code can be removed, removing the `igraph` dependency. In this case, zeroes are output for all network statistics that `igraph` would provide. The followup R code can be used to compute these statistics for a subset of the networks generated in the simulations.
 
 The various `bingo-...-script.R` scripts produce visualisations of the different aspects of the simulations. 
