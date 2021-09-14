@@ -21,13 +21,12 @@
 int OUTPUT_SIMULATION_TRACES = 0;  // output simulated mitochondrial trajectories?
 int REMOVE_SINGLETONS = 0;         // remove singletons from bio networks?
 int OUTPUT_TRAJECTORIES = 0;       // number of sims from which to store time-series output 
-int INACTIVITY = 0;                // whether simulated mitos can be inactive
 
 #define BINGOTYPE 0                // if there is time ordering of edges (as in bio and simulation), 0 uses early edges first, 1 uses random edge ordering
 #define MAXN 10000
 #define MAXE 10000
 
-#define NIT 10         // number of random iterations to run (was 100)
+#define NIT 10         // number of random samples to run (was 100)
 #define SAMPLING 1000
 #define SAMPLINGIT 10
 
@@ -483,7 +482,7 @@ void AMScaleFree(int n, int e, int *amlist, int *amn, int flavour)
 
 
 // create an adjacency matrix matching given n, e statistics from a diffusive physical simulation
-int AMFromSimulation(int n, int e, int *amlist, int *amn, double D, double kon, double koff, double V, double dmito, double kmito, int output, char *fname)
+int AMFromSimulation(int n, int e, int *amlist, int *amn, double D, double kon, double koff, double rhoon, double rhooff, double activep, double V, double dmito, double kmito, int output, char *fname)
 {
   // physical parameters -- somewhat arbitrary
   double cx = 100, cy = 30; // cell size
@@ -492,7 +491,6 @@ int AMFromSimulation(int n, int e, int *amlist, int *amn, double D, double kon, 
   double *x, *y;
   double *dx, *dy;
   int *active;
-  double rhoon, rhooff;
   int *am;
   int i, j;
   long int timer;
@@ -506,9 +504,6 @@ int AMFromSimulation(int n, int e, int *amlist, int *amn, double D, double kon, 
       fprintf(fp, "frame,mito,x,y\n");
     }
 
-  if(INACTIVITY) { rhoon = 0.01; rhooff = 0.1; }
-  else rhoon = rhooff = 0;
-  
   timer = 0;
   // allocate memory for positions and convenient matrix
   x = (double*)malloc(sizeof(double)*n);
@@ -527,10 +522,7 @@ int AMFromSimulation(int n, int e, int *amlist, int *amn, double D, double kon, 
       x[i] = RND*cx;
       y[i] = RND*cy;
       dx[i] = dy[i] = 0;
-      if(INACTIVITY)
-        active[i] = (i < n/10);
-      else
-	active[i] = 1;
+      active[i] = (i < activep*n);
     }
   // loop while we have fewer than desired encounters
   *amn = 0;
@@ -877,7 +869,6 @@ int main(int argc, char *argv[])
     {
       if(!strcmp(argv[i], "--output-simulation-traces\0")) OUTPUT_SIMULATION_TRACES = 1;
       if(!strcmp(argv[i], "--remove-singletons\0")) REMOVE_SINGLETONS = 1;
-      if(!strcmp(argv[i], "--inactivity\0")) INACTIVITY = 1;
       if(!strcmp(argv[i], "--output-trajectories\0"))
 	{
 	  if(i == argc-1) printf("Number of trajectories to output not specified!");
@@ -890,8 +881,8 @@ int main(int argc, char *argv[])
     }
 
   printf("Attempting to use file %s\n", argv[1]);
-  printf("Flags:\n  output-simulation-traces %i\n  remove-singletons %i\n  output-trajectories %i\n  inactivity %i\n\n", OUTPUT_SIMULATION_TRACES, REMOVE_SINGLETONS, OUTPUT_TRAJECTORIES, INACTIVITY);
-  sprintf(filelabel, "%s-%i-%i-%i", argv[1], bingotype, REMOVE_SINGLETONS, INACTIVITY);
+  printf("Flags:\n  output-simulation-traces %i\n  remove-singletons %i\n  output-trajectories %i\n\n", OUTPUT_SIMULATION_TRACES, REMOVE_SINGLETONS, OUTPUT_TRAJECTORIES);
+  sprintf(filelabel, "%s-%i-%i", argv[1], bingotype, REMOVE_SINGLETONS);
   
   // get minimum and maximum node labels
   //  StatsFromFile(argv[1], &min, &max);
@@ -992,20 +983,21 @@ int main(int argc, char *argv[])
 		  // these either take the bio network (expt==0) or construct networks according to different protocols
 		  switch(expt)
 		    {
-		      //		    case 0: StatsFromFile(argv[1], &min, &max); AMFromFile(argv[1], amlist, &amn, &max); for(i = 0; i < 2*amn; i++) amlist[i] -= min; max = max-min+1; break;
+		      // int AMFromSimulation(int n, int e, int *amlist, int *amn, double D, double kon, double koff, double rhoon, double rhooff, double activep, double V, double dmito, double kmito, int output, char *fname)
 		    case 0: AMFromFile(argv[1], amlist, &amn, &nnodes); break;
-		    case 1: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.02, 0, 0, 0, 0, 0, output, fstr); break;        // just low diffusion
-		    case 2: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.1, 0, 0, 0, 0, 0, output, fstr); break;          // just mid diffusion 
-		    case 3: AMFromSimulation(nnodes, nedge, amlist, &amn, 1, 0, 0, 0, 0, 0, output, fstr); break;         // just high diffusion
-		    case 4: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.02, 0.1, 0.1, 0.1, 0, 0, output, fstr); break;  // low diffusion, low cytoskeleton speed
-		    case 5: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.1, 0.1, 0.1, 1, 0, 0, output, fstr); break;      // mid diffusion, mid cytoskeleton speed
-		    case 6: AMFromSimulation(nnodes, nedge, amlist, &amn, 1, 0.1, 0.1, 10, 0, 0, output, fstr); break;   // high diffusion, high cytoskeleton speed
-		    case 7: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.02, 0.5, 0.1, 0.1, 0, 0, output, fstr); break;   // low diffusion, low cytoskeleton speed, cytoskeleton favoured
-		    case 8: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.1, 0.5, 0.1, 1, 0, 0, output, fstr); break;    // mid diffusion, mid cytoskeleton speed, cytoskeleton favoured
-		    case 9: AMFromSimulation(nnodes, nedge, amlist, &amn, 1, 0.5, 0.1, 10, 0, 0, output, fstr); break;   // high diffusion, high cytoskeleton speed, cytoskeleton favoured
-      		    case 10: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.02, 0.1, 0.1, 0.1, 3, 0.3, output, fstr); break;   // low diffusion, low cytoskeleton speed, cytoskeleton favoured, slowing
-		    case 11: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.1, 0.1, 0.1, 1, 3, 0.3, output, fstr); break;    // mid diffusion, mid cytoskeleton speed, cytoskeleton favoured
-		    case 12: AMFromSimulation(nnodes, nedge, amlist, &amn, 1, 0.1, 0.1, 10, 3, 0.3, output, fstr); break;   // high diffusion, high cytoskeleton speed, cytoskeleton favoured
+		      //                                                    D  k:on   off  rho:on off  ap  V   dm  km   
+		    case 1: AMFromSimulation(nnodes, nedge, amlist, &amn,  0.02, 0,     0, 0,     0,     1, 0,   0, 0, output, fstr); break;        // just low diffusion
+		    case 2: AMFromSimulation(nnodes, nedge, amlist, &amn,  0.1,  0,     0, 0,     0,     1, 0,   0, 0, output, fstr); break;          // just mid diffusion 
+		    case 3: AMFromSimulation(nnodes, nedge, amlist, &amn,  1,    0,     0, 0,     0,     1, 0,   0, 0, output, fstr); break;         // just high diffusion
+		    case 4: AMFromSimulation(nnodes, nedge, amlist, &amn,  0.02, 0.1, 0.1, 0,     0,     1, 0.1, 0, 0, output, fstr); break;  // low diffusion, low cytoskeleton speed
+		    case 5: AMFromSimulation(nnodes, nedge, amlist, &amn,  0.1,  0.1, 0.1, 0,     0,     1, 1,   0, 0, output, fstr); break;      // mid diffusion, mid cytoskeleton speed
+		    case 6: AMFromSimulation(nnodes, nedge, amlist, &amn,  1,    0.1, 0.1, 0,     0,     1, 10,  0, 0, output, fstr); break;   // high diffusion, high cytoskeleton speed
+		    case 7: AMFromSimulation(nnodes, nedge, amlist, &amn,  0.02, 0.5, 0.1, 0,     0,     1, 0.1, 0, 0, output, fstr); break;   // low diffusion, low cytoskeleton speed, cytoskeleton favoured
+		    case 8: AMFromSimulation(nnodes, nedge, amlist, &amn,  0.1,  0.5, 0.1, 0,     0,     1, 1,   0, 0, output, fstr); break;    // mid diffusion, mid cytoskeleton speed, cytoskeleton favoured
+		    case 9: AMFromSimulation(nnodes, nedge, amlist, &amn,  1,    0.5, 0.1, 0,     0,     1, 10,  0, 0, output, fstr); break;   // high diffusion, high cytoskeleton speed, cytoskeleton favoured
+     		    case 10: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.02, 0.5, 0.1, 0.01,  0.1, 0.1, 0.1, 0, 0, output, fstr); break;   // low diffusion, low cytoskeleton speed, cytoskeleton favoured, inactivity
+		    case 11: AMFromSimulation(nnodes, nedge, amlist, &amn, 0.1,  0.5, 0.1, 0.01,  0.1, 0.1, 1,   0, 0, output, fstr); break;    // mid diffusion, mid cytoskeleton speed, cytoskeleton favoured, inactivity
+		    case 12: AMFromSimulation(nnodes, nedge, amlist, &amn, 1,    0.5, 0.1, 0.01,  0.1, 0.1, 10,  0, 0, output, fstr); break;   // high diffusion, high cytoskeleton speed, cytoskeleton favoured, inactivity
 		    case 13: AMErdosRenyi(nnodes, nedge, amlist, &amn); break;                    // ER
 		    case 14: AMScaleFree(nnodes, nedge, amlist, &amn, 0); break;                  // SF flavour 0 (start disconnected, new edge with probability ~ deg(i)+1)
 		    case 15: AMScaleFree(nnodes, nedge, amlist, &amn, 1); break;                  // SF flavour 1 (start linear connected, then as 0)

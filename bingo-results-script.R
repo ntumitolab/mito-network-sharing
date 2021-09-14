@@ -12,7 +12,7 @@ output.fname = paste(args[1], ".results-m-", m, ".png", sep="")
 
 library(ggplot2)
 
-all.titles = c("Bio", "Low diff", "Mid diff", "High diff", "Low diff+cyt 1", "Mid diff+cyt 1", "High diff+cyt 1", "Low diff+cyt 2", "Mid diff+cyt 2", "High diff+cyt 2", "Diff+cyt+slow 1", "Diff+cyt+slow 2", "Diff+cyt+slow 3", "ER", "SF 1", "SF 2", "SF 3", "WS 1", "WS 2", "WS 3", "Geometric", "Star")
+all.titles = c("Bio", "Low diff", "Mid diff", "High diff", "Low diff+cyt 1", "Mid diff+cyt 1", "High diff+cyt 1", "Low diff+cyt 2", "Mid diff+cyt 2", "High diff+cyt 2", "Diff+cyt+inactive 1", "Diff+cyt+inactive 2", "Diff+cyt+inactive 3", "ER", "SF 1", "SF 2", "SF 3", "WS 1", "WS 2", "WS 3", "Geometric", "Star")
 for(cs in (3+seq(from=0,to=7)*5)) {
   for(ct in 1:2) {
     all.titles = c(all.titles, paste("clique ", cs, "-", ct, sep=""))

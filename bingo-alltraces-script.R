@@ -14,7 +14,7 @@ library(ggplot2)
 
 results = read.csv(input.fname,header=T)
 subset = results[results$m==m & results$prop.bingos < 1,]
-all.titles = c("X Bio", "Sim: Low diff", "Sim: Mid diff", "Sim: High diff", "Sim: Low diff+cyt 1", "Sim: Mid diff+cyt 1", "Sim: High diff+cyt 1", "Sim: Low diff+cyt 2", "Sim: Mid diff+cyt 2", "Sim: High diff+cyt 2", "Sim: Diff+cyt+slow 1", "Sim: Diff+cyt+slow 2", "Sim: Diff+cyt+slow 3", "Synth: ER", "Synth: SF 1", "Synth: SF 2", "Synth: SF 3", "Synth: WS 1", "Synth: WS 2", "Synth: WS 3", "Synth: Geometric", "Synth: Star")
+all.titles = c("X Bio", "Sim: Low diff", "Sim: Mid diff", "Sim: High diff", "Sim: Low diff+cyt 1", "Sim: Mid diff+cyt 1", "Sim: High diff+cyt 1", "Sim: Low diff+cyt 2", "Sim: Mid diff+cyt 2", "Sim: High diff+cyt 2", "Sim: Diff+cyt+inactive 1", "Sim: Diff+cyt+inactive 2", "Sim: Diff+cyt+inactive 3", "Synth: ER", "Synth: SF 1", "Synth: SF 2", "Synth: SF 3", "Synth: WS 1", "Synth: WS 2", "Synth: WS 3", "Synth: Geometric", "Synth: Star")
 for(cs in (3+seq(from=0,to=7)*5)) {
   for(ct in 1:2) {
       all.titles = c(all.titles, paste("Clique: ", cs, "-", ct, sep=""))

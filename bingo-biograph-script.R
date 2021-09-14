@@ -25,7 +25,8 @@ g = add_vertices(g, n.node-gorder(g))
 groups = walktrap.community(g)
 ngroups = max(groups$membership)
 results = data.frame(n=gorder(g), e=gsize(g), efficiency=efficiency(g, type="global"), groups=ngroups, cc = count_components(g))
-plot(g, vertex.size=0, vertex.label=NA, main=paste(c("n = ", results$n, " e = ", results$e, " cc = ", results$cc, "\nnu = ", format(results$efficiency, digits=3), " ng = ", results$groups), collapse=""))
+plot(g, vertex.size=0, vertex.label=NA)
+title(paste(c("n = ", results$n, " e = ", results$e, " cc = ", results$cc), collapse=""), cex.main=2)
 dev.off()
 
 
