@@ -21,8 +21,6 @@ g++ bingo.c -I /usr/local/include/igraph -ligraph -lm -g -o ./bingo.ce
 ./bingo.ce orig-1.xml-amlist.csv --output-simulation-traces --output-trajectories 10 > tmpo1 &
 # reference case with singletons removed
 ./bingo.ce orig-1.xml-amlist.csv --output-simulation-traces --remove-singletons --output-trajectories 10 > tmpo1a &
-# reference case allowing simulated mitochondria to be inactive
-./bingo.ce orig-1.xml-amlist.csv --inactivity > tmpo1b &
 # reference case with pruned trajectories
 ./bingo.ce orig-1.xml-prune-10-amlist.csv > tmpo1c &
 
