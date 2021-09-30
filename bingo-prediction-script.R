@@ -3,67 +3,104 @@ args = commandArgs(trailingOnly=TRUE)
 
 # test if there are two arguments: if not, return an error
 if (length(args)!=2) {
-  stop("Exactly two arguments must be supplied (input file).\n", call.=FALSE)
+  stop("Exactly two arguments must be supplied (input graphs and results files).\n", call.=FALSE)
 }
+
+#args = c("Output/orig-1.xml-amlist.csv-0-0-graphs.txt", "Output/orig-1.xml-amlist.csv-0-0-results-overall.txt")
 
 graphs.file = args[1]
 results.file = args[2]
-output.file = paste(args[1], ".prediction.png", sep="")
+output.file = paste(args[1], ".predicted.png", sep="")
 
 library(igraph)
 library(ggplot2)
+library(gridExtra)
 
-# graphs.file = "orig-1.xml-amlist.csv-0-0-graphs.txt"
-# results.file = "orig-1.xml-amlist.csv-0-0-results-frame.txt"
-graphs.df = read.table(graphs.file)
-results.df = read.csv(results.file, header=T)
+comparison= data.frame(observed=numeric(), 
+                       estimated=numeric(),
+                       threshold=numeric(),
+                       L=numeric(),stringsAsFactors=F) 
 
-points.df = data.frame(L=NULL, expt=NULL, obs=NULL, est=NULL)
-expts = unique(graphs.df$V1)
-for(L in 2:10) {
-  for(i in 1:length(expts)) {
-    amlist = graphs.df[graphs.df$V1 == expts[i] & graphs.df$V2 == 0, 3:4]
-    g = graph_from_edgelist(as.matrix(amlist), directed=F)
-    bingos = results.df$num.bingos[results.df$L == L & results.df$m == 0 & results.df$n.edges == 1000 & results.df$expt == expts[i] & results.df$it == 0]
- 
-    # g is a igraph object containing our graph
+# read the bingio results
+bb=read.table(results.file,sep=",",header=T)
+bb=bb[,c(1,2,3,30)]
+
+
+for (L in 2:10) {
+  
+  results = data.frame(expt=NULL, iteration=NULL, n=NULL, e=NULL, efficiency=NULL, groups=NULL)
+  all.graphs = read.table(graphs.file)
+  graphs=list()
+  numberOfBingos=vector()
+  estimatedBingos=vector()
+  
+  for(i in 1:max(all.graphs[,1])+1)
+  {
+    graphs.by.expt = all.graphs[all.graphs[,1] == i-1 & all.graphs[,2] == 0, 3:4]
+    n.node = graphs.by.expt[1,3]
+    g = graph_from_edgelist(as.matrix(graphs.by.expt[-1,]), directed=F)
+    g = add_vertices(g, n.node-gorder(g))
+    graphs[[i]]=g
+    numberOfBingos[i] = bb[bb[,1] == L & bb[,2] == 0 & bb[,3] == i-1, 4]
+    
+    # the estimated probability for the number of bingos
     deg=degree(g)
-   
-    # aaa stores the frequencies of nodes with degree
-    # higher than L-1
     aaa=table(deg[which(deg[]>=L-1)])
     pr=0
     if (length(aaa)==0) {
-      estimatedBingos=0
+      estimatedBingos[i]=0
       next
     }
     for (ii in 1:length(aaa)) {
       n=as.numeric(rownames(aaa)[ii])+1
       comb=L
-      spr=1
-      pl=1
-      for (j in 1:L) {
+      spr=0
+      pl=-1
+      for (j in 0:L) {
         pl=pl*(-1)
         spr=spr+pl*dim(combn(comb,j))[2]*((comb-j)/comb)^n
       }
       pr=pr+aaa[[ii]]*spr
     }
-    estimatedBingos=pr
-
-    points.df = rbind(points.df, data.frame(L=L, expt=i, obs = bingos, est = estimatedBingos))
+    estimatedBingos[i]=pr
+    
+    
+    # the approximate estimation using the expected value
+    spr=0
+    pl=-1
+    for (j in 1:L) {
+      pl=pl*(-1)
+      spr=spr+pl*dim(combn(comb,j))[2]*1/(1-((comb-j)/comb))
+    }
+    spr2=0
+    # spr=L*harmonic(L) #eventually the same with the above spr
+    for (ii in 1:length(aaa)) {
+      n=as.numeric(rownames(aaa)[ii])+1
+      if (n>=spr) {
+        spr2=spr2+aaa[[ii]]
+      }
+    }
+    
+    #store the estimated and the rough approximation (using the scalar approach)
+    comparison[nrow(comparison) + 1,] = c(numberOfBingos[i],estimatedBingos[i],spr2,L)
   }
 }
 
-png(output.file, width=800, height=800)
 
-ggplot(data = points.df, aes(x = est, y = obs, color = factor(L))) +
+png(output.file, width=1000, height=500)
+
+my.size.l = 18
+my.size.m = 14
+p1 = ggplot(data = comparison, aes(x = estimated, y = observed, color = factor(L))) +
   geom_point(size=3) +
-  geom_abline(slope = 1, intercept = 0) +
-  coord_trans(x="sqrt", y="sqrt") +
+  geom_abline(slope = 1, intercept = 0) + 
   xlab("Predicted bingos") + ylab("Observed bingos") + labs(colour = "L") +
-  theme(axis.title.x = element_text(size=24), axis.title.y = element_text(size=24),
-        axis.text.x = element_text(size=18), axis.text.y = element_text(size=18),
-        legend.title = element_text(size=24), legend.text = element_text(size=18))  
-
+  theme(axis.title.x = element_text(size=my.size.l), axis.title.y = element_text(size=my.size.l), axis.text.x = element_text(size=my.size.m), axis.text.y = element_text(size=my.size.m), legend.title = element_text(size=my.size.l), legend.text = element_text(size=my.size.m))
+p2 = ggplot(data = comparison, aes(x = threshold, y = observed, color = factor(L))) +
+  geom_point(size=3) +
+  geom_abline(slope = 1, intercept = 0) + 
+  xlab("Predicted bingos") + ylab("Observed bingos") + labs(colour = "L") +
+  theme(axis.title.x = element_text(size=my.size.l), axis.title.y = element_text(size=my.size.l), axis.text.x = element_text(size=my.size.m), axis.text.y = element_text(size=my.size.m), legend.title = element_text(size=my.size.l), legend.text = element_text(size=my.size.m))
+grid.arrange(p1, p2, nrow=1)
 
 dev.off()
